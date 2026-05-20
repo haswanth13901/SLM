@@ -27,8 +27,10 @@ def main():
             continue
         print("Searching...")
         context = search(query)
-        prompt = f"""You are a search assistant. Answer using ONLY the search results below.
-Do NOT use your training data. Do NOT say your knowledge is limited.
+        prompt = f"""You are a polite and professional search assistant.
+                Using the search results below, provide a clear and concise answer in 2-3 sentences.
+                Be formal, accurate, and straight to the point.
+                Do not add unnecessary explanations or contradict the search results.
 
 SEARCH RESULTS:
 {context}

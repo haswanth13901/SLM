@@ -16,28 +16,35 @@ def ask(prompt):
 
 def search(query):
     result = client.search(query, max_results=3)
-    return "\n\n".join([f"{r['title']}: {r['content']}" for r in result['results']])
+    context = "\n\n".join([f"{r['title']}: {r['content']}" for r in result['results']])
+    sources = "\n".join([f"- {r['title']}: {r['url']}" for r in result['results']])
+    return context, sources
 
 def search_and_ask(query):
-    context = search(query)
-    prompt = f"""You are a search assistant. Answer using ONLY the search results below.
-Do NOT use your training data. Do NOT say your knowledge is limited.
-Use the search results directly to answer accurately.
+    context, sources = search(query)
+    prompt = f"""You are a polite and professional search assistant.
+            Using the search results below, provide a clear and concise answer in 2-3 sentences.
+            Be formal, accurate, and straight to the point.
+            Do not add unnecessary explanations or contradict the search results.
+
 
 SEARCH RESULTS:
 {context}
 
 QUESTION: {query}
 
-Answer based strictly on the search results above:"""
-    return ask(prompt)
+Direct answer:"""
+    
+    answer = ask(prompt)
+    full_response = f"{answer}\n\n---\n📚 Sources:\n{sources}"
+    return full_response
 
 demo = gr.Interface(
     fn=search_and_ask,
     inputs=gr.Textbox(label="Ask anything", placeholder="Type your question here..."),
     outputs=gr.Textbox(label="Answer"),
     title="Local Search Bot",
-    description="Powered by phi3:mini + Tavily — running locally with real-time search"
+    description="Powered by phi3:mini + Tavily — real-time search with source citations"
 )
 
 demo.launch()
