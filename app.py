@@ -1,50 +1,33 @@
 import gradio as gr
-import requests
-import os
-from tavily import TavilyClient
-from dotenv import load_dotenv
+from search import search_and_ask
+from history import add_to_history, download_txt, download_pdf, clear_history
 
-load_dotenv()
-client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
-
-def ask(prompt):
-    r = requests.post(
-        "http://localhost:11434/api/generate",
-        json={"model": "phi3:mini", "prompt": prompt, "stream": False}
-    )
-    return r.json()["response"]
-
-def search(query):
-    result = client.search(query, max_results=3)
-    context = "\n\n".join([f"{r['title']}: {r['content']}" for r in result['results']])
-    sources = "\n".join([f"- {r['title']}: {r['url']}" for r in result['results']])
-    return context, sources
-
-def search_and_ask(query):
-    context, sources = search(query)
-    prompt = f"""You are a polite and professional search assistant.
-            Using the search results below, provide a clear and concise answer in 2-3 sentences.
-            Be formal, accurate, and straight to the point.
-            Do not add unnecessary explanations or contradict the search results.
-
-
-SEARCH RESULTS:
-{context}
-
-QUESTION: {query}
-
-Direct answer:"""
-    
-    answer = ask(prompt)
-    full_response = f"{answer}\n\n---\n📚 Sources:\n{sources}"
+def handle_query(query):
+    answer, sources, full_response = search_and_ask(query)
+    add_to_history(query, answer, sources)
     return full_response
 
-demo = gr.Interface(
-    fn=search_and_ask,
-    inputs=gr.Textbox(label="Ask anything", placeholder="Type your question here..."),
-    outputs=gr.Textbox(label="Answer"),
-    title="Local Search Bot",
-    description="Powered by phi3:mini + Tavily — real-time search with source citations"
-)
+with gr.Blocks(title="Local Search Bot") as demo:
+    gr.Markdown("# Local Search Bot")
+    gr.Markdown("A professional AI search assistant powered by phi3:mini + Tavily.")
+
+    query_input = gr.Textbox(label="Your Question", placeholder="Type your question here...")
+    answer_output = gr.Textbox(label="Answer")
+    submit_btn = gr.Button("Submit", variant="primary")
+    submit_btn.click(fn=handle_query, inputs=query_input, outputs=answer_output)
+
+    gr.Markdown("### Chat History")
+    with gr.Row():
+        txt_btn = gr.Button("Download as TXT")
+        pdf_btn = gr.Button("Download as PDF")
+        clear_btn = gr.Button("Clear History", variant="stop")
+
+    txt_file = gr.File(label="TXT Download")
+    pdf_file = gr.File(label="PDF Download")
+    clear_output = gr.Textbox(label="Status", interactive=False)
+
+    txt_btn.click(fn=download_txt, outputs=txt_file)
+    pdf_btn.click(fn=download_pdf, outputs=pdf_file)
+    clear_btn.click(fn=clear_history, outputs=clear_output)
 
 demo.launch()
