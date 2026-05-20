@@ -5,3 +5,5 @@ __pycache__/
 *.pyc
 .env
 *.log
+chat_history.txt
+chat_history.pdf
